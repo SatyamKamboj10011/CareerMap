@@ -9,6 +9,7 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
+//registered service workder for PWA features
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
