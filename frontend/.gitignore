@@ -25,3 +25,6 @@ dist-ssr
 
 # Environment variables - never push to GitHub!
 .env
+**/.env
+backend/server/.env
+frontend/.env
