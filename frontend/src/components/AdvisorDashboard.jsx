@@ -1,7 +1,7 @@
 // AdvisorDashboard.jsx - Modern Career Advisor Dashboard
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { getToken, getUser, logout } from '../services/Auth.js';
+import api from '../services/api.js';
+import { getUser } from '../services/Auth.js';
 
 const AdvisorDashboard = ({ onLogout }) => {
   const [students, setStudents] = useState([]);
@@ -22,18 +22,14 @@ const [notifTitle, setNotifTitle] = useState('');
 
   const fetchStudents = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/opportunities/students', {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      const res = await api.get('/api/opportunities/students');
       setStudents(res.data);
     } catch { setError('Failed to load students'); }
   };
 
   const fetchOpportunities = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/opportunities', {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      const res = await api.get('/api/opportunities');
       setOpportunities(res.data);
     } catch { setError('Failed to load opportunities'); }
   };
@@ -41,9 +37,7 @@ const [notifTitle, setNotifTitle] = useState('');
   const handlePostOpportunity = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/opportunities', newOpportunity, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      await api.post('/api/opportunities', newOpportunity);
       setMessage('Opportunity posted successfully!');
       setShowForm(false);
       setNewOpportunity({ companyName: '', role: '', description: '' });
@@ -55,12 +49,10 @@ const [notifTitle, setNotifTitle] = useState('');
   const handleSendNotification = async (student) => {
   setNotifyingId(student._id);
   try {
-    await axios.post('http://localhost:5000/api/notify', {
+    await api.post('/api/notify', {
       title: 'Message from your Career Advisor',
       body: notifMessages[student._id] || `Hi ${student.name}, please check your CareerMap dashboard for updates!`,
       studentId: student._id
-    }, {
-      headers: { Authorization: `Bearer ${getToken()}` }
     });
     setMessage(`Notification sent to ${student.name}!`);
     setNotifMessages({ ...notifMessages, [student._id]: '' });// Clear input after sending
@@ -76,9 +68,7 @@ const [notifTitle, setNotifTitle] = useState('');
   const handleDeleteOpportunity = async (id) => {
     setDeletingId(id);
     try {
-      await axios.delete(`http://localhost:5000/api/opportunities/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      await api.delete(`/api/opportunities/${id}`);
       setMessage('Opportunity deleted!');
       fetchOpportunities();
       setTimeout(() => setMessage(''), 2000);

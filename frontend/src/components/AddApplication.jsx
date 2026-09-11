@@ -1,7 +1,6 @@
 // AddApplication.jsx - Modern Add Application Form
 import React, { useState } from 'react';
-import axios from 'axios';
-import { getToken } from '../services/Auth.js';
+import api from '../services/api.js';
 
 const AddApplication = ({ onBack, onApplicationAdded }) => {
   const [formData, setFormData] = useState({
@@ -35,9 +34,7 @@ const AddApplication = ({ onBack, onApplicationAdded }) => {
     setMessage('');
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/applications', formData, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      await api.post('/api/applications', formData);
       setMessage('Application added successfully!');
       setTimeout(() => onApplicationAdded(), 1200);
     } catch (err) {

@@ -7,10 +7,13 @@ dotenv.config(); // Load environment variables from .env file first
 
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import pkg from 'mongoose';
 const mongoose = pkg;
 import webpush from 'web-push';
 import Notification from './models/Notifications.js';
+import PushSubscription from './models/PushSubscription.js';
 import logger from './logger.js'; // Winston logger for proper logging
 
 // Import all route files - each file handles a different part of the API
@@ -23,18 +26,56 @@ import passport from './config/passport.js';
 // Create the Express application
 const app = express();
 
+// Frontend origin - used for CORS and OAuth redirects (set in .env for deployment)
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+// Render (and most PaaS hosts) sit behind a reverse proxy - without this,
+// express-rate-limit sees the proxy's IP for every request instead of the client's.
+app.set('trust proxy', 1);
+
 // ─── GLOBAL MIDDLEWARE ───
 // These run on EVERY request before anything else
-app.use(cors()); // Allow React frontend (port 5173) to talk to backend (port 5000)
+app.use(helmet()); // Sets safe HTTP headers (CSP, no-sniff, etc.)
+app.use(cors({ origin: FRONTEND_URL })); // Only allow the configured frontend origin
 app.use(express.json()); // Allow server to read JSON data from request body
 app.use(passport.initialize()); // Initialize Google OAuth
 
+// Basic rate limiting - protects auth routes from brute-force / credential stuffing
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many attempts, please try again later.' }
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
+// General API rate limit as a broader safety net
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use('/api', apiLimiter);
+
 
 // ─── DEFAULT ROUTE ───
-// Health check - visit http://localhost:5000 to confirm server is running
 app.get('/', (req, res) => {
-  logger.info('Health check route accessed');
   res.json({ message: 'CareerMap API is running' });
+});
+
+// ─── HEALTH CHECK ───
+// Used by Render's health checks / uptime pings to keep the free-tier instance
+// warm. Reports DB connection state too. Not logged - health checks hit this
+// frequently and would otherwise flood the logs.
+app.get('/health', (req, res) => {
+  const dbState = mongoose.connection.readyState; // 1 = connected
+  res.status(dbState === 1 ? 200 : 503).json({
+    status: dbState === 1 ? 'ok' : 'degraded',
+    db: ['disconnected', 'connected', 'connecting', 'disconnecting'][dbState] || 'unknown'
+  });
 });
 
 // ─── MOUNT API ROUTES ───
@@ -65,29 +106,22 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 }
 
 // ─── PUSH SUBSCRIPTIONS ───
-// Array to store all student push subscriptions
+// Stored in MongoDB (PushSubscription model) so they survive server restarts.
 // This is the Observer pattern - students subscribe, advisor notifies all
-let pushSubscriptions = [];
 
 // Student calls this when they click "Enable alerts"
 // Saves their browser subscription details so we can send them notifications later
 // Save push subscription with studentId
 app.post('/api/subscribe', verifyToken, async (req, res) => {
   try {
-    const subscription = req.body;
-    // Save subscription with studentId from JWT token
-    const existingIndex = pushSubscriptions.findIndex(
-      sub => sub.studentId === req.user.id
+    const { endpoint, keys } = req.body;
+    // Upsert: one subscription per student, updated on re-subscribe
+    await PushSubscription.findOneAndUpdate(
+      { studentId: req.user.id },
+      { studentId: req.user.id, endpoint, keys },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
-    
-    if (existingIndex > -1) {
-      // Update existing subscription
-      pushSubscriptions[existingIndex] = { ...subscription, studentId: req.user.id };
-    } else {
-      // Add new subscription
-      pushSubscriptions.push({ ...subscription, studentId: req.user.id });
-    }
-    
+
     logger.info(`Push subscription saved for student: ${req.user.id}`);
     res.status(201).json({ message: 'Subscription saved successfully' });
   } catch (err) {
@@ -112,23 +146,23 @@ app.post('/api/notify', async (req, res) => {
 
     // Send push only to the specific student's subscription
     if (studentId) {
-      const studentSub = pushSubscriptions.find(
-        sub => sub.studentId === studentId
-      );
+      const studentSub = await PushSubscription.findOne({ studentId });
       if (studentSub) {
-        const { studentId: sid, ...pushSub } = studentSub;
-        await webpush.sendNotification(pushSub, payload);
+        await webpush.sendNotification(
+          { endpoint: studentSub.endpoint, keys: studentSub.keys },
+          payload
+        );
         logger.info(`Push sent to student: ${studentId}`);
       } else {
         logger.warn(`No push subscription found for student: ${studentId}`);
       }
     } else {
       // Send to all subscribers
+      const allSubs = await PushSubscription.find();
       await Promise.all(
-        pushSubscriptions.map(sub => {
-          const { studentId: sid, ...pushSub } = sub;
-          return webpush.sendNotification(pushSub, payload);
-        })
+        allSubs.map(sub =>
+          webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload)
+        )
       );
     }
 

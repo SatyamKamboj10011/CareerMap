@@ -1,7 +1,7 @@
 // ProfilePage.jsx - Student/Advisor profile page
 import React, { useState } from 'react';
-import axios from 'axios';
-import { getToken, getUser, saveUser } from '../services/Auth.js';
+import api from '../services/api.js';
+import { getUser, saveUser } from '../services/Auth.js';
 
 const ProfilePage = () => {
   const user = getUser();
@@ -25,11 +25,7 @@ const ProfilePage = () => {
     setError('');
     setMessage('');
     try {
-      const res = await axios.put(
-        'http://localhost:5000/api/auth/profile',
-        formData,
-        { headers: { Authorization: `Bearer ${getToken()}` } }
-      );
+      const res = await api.put('/api/auth/profile', formData);
       saveUser({ ...user, ...formData });
       setMessage('Profile updated successfully!');
       setEditMode(false);

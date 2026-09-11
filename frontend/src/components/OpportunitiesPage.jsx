@@ -1,7 +1,6 @@
 // OpportunitiesPage.jsx - Students can browse opportunities posted by advisors
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { getToken } from '../services/Auth.js';
+import api from '../services/api.js';
 
 const OpportunitiesPage = () => {
   const [opportunities, setOpportunities] = useState([]);
@@ -15,9 +14,7 @@ const OpportunitiesPage = () => {
 
   const fetchOpportunities = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/opportunities', {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      const res = await api.get('/api/opportunities');
       setOpportunities(res.data);
     } catch (err) {
       setError('Failed to load opportunities');

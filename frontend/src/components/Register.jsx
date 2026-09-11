@@ -1,6 +1,6 @@
 // Register.jsx - Modern Registration Page with Illustrations
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api.js';
 
 const Register = ({ onSwitchToLogin }) => {
   const [formData, setFormData] = useState({
@@ -47,7 +47,7 @@ const Register = ({ onSwitchToLogin }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await api.post('/api/auth/register', {
         name: formData.name,
         email: formData.email,
         contactNumber: formData.contactNumber,

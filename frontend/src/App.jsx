@@ -12,6 +12,7 @@ import NotificationsPage from './components/NotificationsPage.jsx';
 import OpportunitiesPage from './components/OpportunitiesPage.jsx';
 import ProfilePage from './components/ProfilePage.jsx';
 import './index.css';
+import api from './services/api.js';
 import { isAuthenticated, getUser, saveToken, saveUser } from './services/Auth.js';
 
 
@@ -59,26 +60,27 @@ const App = () => {
   
 useEffect(() => {
   // Handle Google OAuth callback
-  // Google redirects to /auth/google/success?token=...
+  // Google redirects to /auth/google/success?code=... (a short-lived one-time code,
+  // never the JWT itself, so the token never sits in the URL/browser history)
   if (window.location.pathname === '/auth/google/success') {
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    const name = urlParams.get('name');
-    const email = urlParams.get('email');
-    const role = urlParams.get('role');
-    const id = urlParams.get('id');
+    const code = urlParams.get('code');
 
-    if (token) {
-      // Save token and user to localStorage
-      saveToken(token);
-      saveUser({ id, name, email, role });
-
-      // Update state
-      setIsLoggedIn(true);
-      setCurrentPage('home');
-
-      // Clean URL
-      window.history.replaceState({}, document.title, '/');
+    if (code) {
+      api.post('/api/auth/google/exchange', { code })
+        .then(({ data }) => {
+          saveToken(data.token);
+          saveUser(data.user);
+          setIsLoggedIn(true);
+          setCurrentPage('home');
+        })
+        .catch(() => {
+          setCurrentPage('login');
+        })
+        .finally(() => {
+          // Clean URL either way
+          window.history.replaceState({}, document.title, '/');
+        });
     }
   }
 }, []);

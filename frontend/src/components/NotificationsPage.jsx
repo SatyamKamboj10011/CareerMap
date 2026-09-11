@@ -1,7 +1,6 @@
 // NotificationsPage.jsx - In-app notifications for students
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { getToken } from '../services/Auth.js';
+import api from '../services/api.js';
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
@@ -13,9 +12,7 @@ const NotificationsPage = () => {
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/notifications', {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      const res = await api.get('/api/notifications');
       setNotifications(res.data);
     } catch (err) {
       console.error('Failed to load notifications');
@@ -26,9 +23,7 @@ const NotificationsPage = () => {
 
   const markAsRead = async (id) => {
     try {
-      await axios.put(`http://localhost:5000/api/notifications/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      await api.put(`/api/notifications/${id}/read`, {});
       setNotifications(notifications.map(n =>
         n._id === id ? { ...n, read: true } : n
       ));
@@ -41,9 +36,7 @@ const NotificationsPage = () => {
     try {
       const unread = notifications.filter(n => !n.read);
       await Promise.all(unread.map(n =>
-        axios.put(`http://localhost:5000/api/notifications/${n._id}/read`, {}, {
-          headers: { Authorization: `Bearer ${getToken()}` }
-        })
+        api.put(`/api/notifications/${n._id}/read`, {})
       ));
       setNotifications(notifications.map(n => ({ ...n, read: true })));
     } catch (err) {

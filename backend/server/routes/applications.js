@@ -1,11 +1,12 @@
 // this is different from the Application.js in models
-//that one is for db schema 
+//that one is for db schema
 //this is for handling the routes and CRUD operations
 //in this all  the routes are protected and the user must be logged in with a valid JWT token
 
-import express, { application } from 'express';
+import express from 'express';
 import Application from '../models/Application.js';
 import verifyToken from '../middleware/auth.js'
+import logger from '../logger.js';
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.get('/', verifyToken, async (req, res) =>{
 
     res.json(applications);
     } catch (error) {
-        console.error('Get applications error:', error);
+        logger.error(`Get applications error: ${error.message}`);
         res.status(500).json({message: 'Server error'});
     }
 });
@@ -54,7 +55,7 @@ router.post('/', verifyToken, async (req, res) =>{
         });
 
     } catch (error) {
-        console.error('Add application error:', error);
+        logger.error(`Add application error: ${error.message}`);
         res.status(500).json({message: 'Server error'});
     }
 });
@@ -67,16 +68,17 @@ router.put('/:id', verifyToken, async (req, res) =>{
     try {
         const {companyName, role, status, notes } = req.body;
 
-        //find the application by id and update it
+        //find the application by id AND ownership, then update it
         // {new: true} return the updates doc insted of old one
-        const updated = await Application.findByIdAndUpdate(
-            req.params.id,
+        // studentId filter prevents one student from editing another student's application
+        const updated = await Application.findOneAndUpdate(
+            { _id: req.params.id, studentId: req.user.id },
             { companyName, role, status, notes },
             { new: true }
 
         );
 
-        //if no application found with that id return 404
+        //if no application found with that id (or it doesn't belong to this user) return 404
         if (!updated) {
             return res.status(404).json({ message: 'Application not found' });
         }
@@ -86,7 +88,7 @@ router.put('/:id', verifyToken, async (req, res) =>{
             application: updated
         });
     } catch (error) {
-        console.error('Update application error:', error);
+        logger.error(`Update application error: ${error.message}`);
         res.status(500).json({message: 'Server error'});
     }
 });
@@ -96,8 +98,9 @@ router.put('/:id', verifyToken, async (req, res) =>{
 //route: DELETE /api/applications/:id
 router.delete('/:id', verifyToken, async (req, res) =>{
     try{
-        //find the application by id and delete it
-        const deleted = await Application.findByIdAndDelete(req.params.id);
+        //find the application by id AND ownership, then delete it
+        // studentId filter prevents one student from deleting another student's application
+        const deleted = await Application.findOneAndDelete({ _id: req.params.id, studentId: req.user.id });
 
         //if no application found return 404
         if (!deleted) {
@@ -107,7 +110,7 @@ router.delete('/:id', verifyToken, async (req, res) =>{
 
 
     }  catch (error) {
-    console.error('Delete application error:', error);
+    logger.error(`Delete application error: ${error.message}`);
     res.status(500).json({ message: 'Server error' });
   }
 });

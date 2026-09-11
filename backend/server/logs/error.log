@@ -1,4 +1,0 @@
-[2026-06-05 15:48:58] [31merror[39m: Google OAuth error: User validation failed: contactNumber: Path `contactNumber` is required.
-[2026-06-05 15:48:58] [31merror[39m: Global error: User validation failed: contactNumber: Path `contactNumber` is required.
-[2026-06-05 15:51:11] [31merror[39m: Global error: Bad Request
-[2026-06-05 16:20:45] [31merror[39m: Push notification error: Notification validation failed: studentId: Cast to ObjectId failed for value "STUDENT_ID_HERE" (type string) at path "studentId"

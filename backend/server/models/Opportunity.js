@@ -8,7 +8,7 @@ const opportunitySchema = new Schema({
     advisorId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        requried: true
+        required: true
     },
     companyName: {
         type: String,

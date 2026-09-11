@@ -1,6 +1,6 @@
 // Login.jsx - Modern Login Page with Illustrations
 import React, { useState } from 'react';
-import axios from 'axios';
+import api, { API_URL } from '../services/api.js';
 import { saveToken, saveUser } from '../services/Auth.js';
 
 const Login = ({ onSwitchToRegister, onLoginSuccess }) => {
@@ -18,7 +18,7 @@ const Login = ({ onSwitchToRegister, onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await api.post('/api/auth/login', {
         email,
         password
       });
@@ -149,7 +149,7 @@ const Login = ({ onSwitchToRegister, onLoginSuccess }) => {
 
 {/* Google Sign In Button */}
 
- <a href="http://localhost:5000/api/auth/google"
+ <a href={`${API_URL}/api/auth/google`}
   className="google-btn">
   <svg width="18" height="18" viewBox="0 0 24 24">
     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

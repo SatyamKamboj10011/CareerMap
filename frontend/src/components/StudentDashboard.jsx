@@ -1,7 +1,7 @@
 // StudentDashboard.jsx - Modern Student Dashboard
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { getToken, getUser, logout } from '../services/Auth.js';
+import api from '../services/api.js';
+import { getUser } from '../services/Auth.js';
 
 const StudentDashboard = ({ onLogout, onAddApplication }) => {
   const [applications, setApplications] = useState([]);
@@ -18,9 +18,7 @@ const StudentDashboard = ({ onLogout, onAddApplication }) => {
 
   const fetchApplications = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/applications', {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      const response = await api.get('/api/applications');
       setApplications(response.data);
     } catch (err) {
       setError('Failed to load applications');
@@ -29,10 +27,7 @@ const StudentDashboard = ({ onLogout, onAddApplication }) => {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      await axios.put(`http://localhost:5000/api/applications/${id}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${getToken()}` } }
-      );
+      await api.put(`/api/applications/${id}`, { status: newStatus });
       fetchApplications();
       setMessage('Status updated!');
       setTimeout(() => setMessage(''), 2000);
@@ -44,9 +39,7 @@ const StudentDashboard = ({ onLogout, onAddApplication }) => {
   const handleDelete = async (id) => {
     setDeletingId(id);
     try {
-      await axios.delete(`http://localhost:5000/api/applications/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      await api.delete(`/api/applications/${id}`);
       fetchApplications();
       setMessage('Application deleted!');
       setTimeout(() => setMessage(''), 2000);
@@ -81,8 +74,7 @@ const StudentDashboard = ({ onLogout, onAddApplication }) => {
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true, applicationServerKey: convertedKey
       });
-      await axios.post('http://localhost:5000/api/subscribe', subscription);
-      headers: { Authorization: `Bearer ${getToken()}` }
+     await api.post('/api/subscribe', subscription);
       setMessage('Push notifications enabled!');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {

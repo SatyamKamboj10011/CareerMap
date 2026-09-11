@@ -1,7 +1,7 @@
 // HomePage.jsx - Modern Bento Grid Home Dashboard
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { getToken, getUser } from '../services/Auth.js';
+import api from '../services/api.js';
+import { getUser } from '../services/Auth.js';
 
 const HomePage = ({ onNavigate }) => {
   const user = getUser();
@@ -17,9 +17,7 @@ const HomePage = ({ onNavigate }) => {
 
   const fetchApplications = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/applications', {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
+      const response = await api.get('/api/applications');
       setApplications(response.data);
     } catch (err) {
       console.error('Failed to load applications');

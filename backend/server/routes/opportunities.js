@@ -7,6 +7,7 @@ import Opportunity from '../models/Opportunity.js';
 import User from '../models/User.js';
 import Application from '../models/Application.js';
 import verifyToken, { isAdvisor } from '../middleware/auth.js';
+import logger from '../logger.js';
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.get('/', verifyToken, async (req, res) => {
       .populate('advisorId', 'name email');
     res.json(opportunities);
   } catch (error) {
-    console.error('Get opportunities error:', error);
+    logger.error(`Get opportunities error: ${error.message}`);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -48,7 +49,7 @@ router.post('/', verifyToken, isAdvisor, async (req, res) => {
       opportunity: newOpportunity 
     });
   } catch (error) {
-    console.error('Post opportunity error:', error);
+    logger.error(`Post opportunity error: ${error.message}`);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -58,8 +59,9 @@ router.post('/', verifyToken, isAdvisor, async (req, res) => {
 // Route: DELETE /api/opportunities/:id
 router.delete('/:id', verifyToken, isAdvisor, async (req, res) => {
   try {
-    // Find and delete the opportunity by ID
-    const deleted = await Opportunity.findByIdAndDelete(req.params.id);
+    // Find and delete the opportunity by ID, restricted to the advisor who posted it
+    // advisorId filter prevents one advisor from deleting another advisor's opportunity
+    const deleted = await Opportunity.findOneAndDelete({ _id: req.params.id, advisorId: req.user.id });
 
     if (!deleted) {
       return res.status(404).json({ message: 'Opportunity not found' });
@@ -67,7 +69,7 @@ router.delete('/:id', verifyToken, isAdvisor, async (req, res) => {
 
     res.json({ message: 'Opportunity deleted successfully' });
   } catch (error) {
-    console.error('Delete opportunity error:', error);
+    logger.error(`Delete opportunity error: ${error.message}`);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -96,7 +98,7 @@ router.get('/students', verifyToken, isAdvisor, async (req, res) => {
 
     res.json(studentsWithApps);
   } catch (error) {
-    console.error('Get students error:', error);
+    logger.error(`Get students error: ${error.message}`);
     res.status(500).json({ message: 'Server error' });
   }
 });
