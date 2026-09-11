@@ -97,12 +97,20 @@ mongoose.connect(process.env.MONGO_URI)
 // VAPID keys prove to the browser that our server is trusted to send notifications
 // Keys are stored in .env file for security - never hardcoded in code
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    process.env.VAPID_EMAIL,
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
-  logger.info('VAPID keys configured for push notifications');
+  try {
+    webpush.setVapidDetails(
+      process.env.VAPID_EMAIL,
+      process.env.VAPID_PUBLIC_KEY.trim(),
+      process.env.VAPID_PRIVATE_KEY.trim()
+    );
+    logger.info('VAPID keys configured for push notifications');
+  } catch (err) {
+    // A malformed VAPID key would otherwise crash the whole server on boot.
+    // Push notifications are a non-critical feature - log and keep running.
+    logger.error(`Invalid VAPID keys, push notifications disabled: ${err.message}`);
+  }
+} else {
+  logger.warn('VAPID keys not set - push notifications disabled');
 }
 
 // ─── PUSH SUBSCRIPTIONS ───
