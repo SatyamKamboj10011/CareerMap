@@ -27,7 +27,8 @@ import passport from './config/passport.js';
 const app = express();
 
 // Frontend origin - used for CORS and OAuth redirects (set in .env for deployment)
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+// Strip any trailing slash - browsers send Origin without one, and CORS requires an exact match.
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 
 // Render (and most PaaS hosts) sit behind a reverse proxy - without this,
 // express-rate-limit sees the proxy's IP for every request instead of the client's.
